@@ -63,7 +63,7 @@
 
 .mil-legend {
   position: absolute;
-  top: 130px; /* Umieszczenie pod przyciskami wyboru typu */
+  top: 150px; /* Umieszczenie pod przyciskami wyboru typu */
   left: 20px;
   z-index: 1000; /* Musi być wyżej niż warstwa mapy */
   background: white;
@@ -108,4 +108,9 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   font-weight: bold;
   transition: all 0.2s;
+}
+.mil-btn:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+    transition: 0.2s;
 }
