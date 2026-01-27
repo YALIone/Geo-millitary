@@ -115,11 +115,19 @@ export default function MilitaryOSMLayer() {
         />
       </div>
 
-      {/* LEGENDA */}
+{/* LEGENDA - Teraz z pełną treścią */}
       <div className="mil-legend">
         <h4>Legenda</h4>
-        <div><strong>Kategoria:</strong> {MILITARY_LABELS[militaryType]}</div>
-        <div><strong>Liczba obiektów:</strong> {data ? data.features.length : 0}</div>
+        <div className="mil-legend-item">
+          <strong>Kategoria:</strong> {MILITARY_LABELS[militaryType]}
+        </div>
+        <div className="mil-legend-item">
+          <strong>Liczba obiektów:</strong> {
+            loading 
+              ? <span style={{color: "#666"}}>pobieranie...</span> 
+              : (data ? data.features.length : "0")
+          }
+        </div>
       </div>
 
       {/* WYBÓR TYPU */}

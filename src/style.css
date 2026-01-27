@@ -59,20 +59,33 @@
 }
 
 
+/* src/style.css */
+
 .mil-legend {
-  position: none; 
-  top: 120px;
-  left: 50px;
-  z-index: 1000;
+  position: absolute;
+  top: 130px; /* Umieszczenie pod przyciskami wyboru typu */
+  left: 20px;
+  z-index: 1000; /* Musi być wyżej niż warstwa mapy */
   background: white;
-  padding: 12px;
+  padding: 15px;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  min-width: 180px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  pointer-events: auto; /* Pozwala na interakcję z panelem */
+  font-family: Arial, sans-serif;
 }
 
 .mil-legend h4 {
-  margin: 0 0 8px 0;
+  margin: 0 0 10px 0;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.mil-legend-item {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 5px;
 }
 
 
