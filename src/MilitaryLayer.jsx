@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { GeoJSON, useMap } from "react-leaflet";
-// cos zmienim
+import "./style.css"; // Import oddzielnych styli
+
 const MILITARY_TYPES = [
   "barracks", "naval_base", "airfield", "training_area", 
   "range", "primary", "office", "danger_area", "shelter", "bunker"
@@ -42,16 +43,17 @@ export default function MilitaryOSMLayer() {
       const result = await fetch(url);
       
       if (!result.ok) {
-        console.error("File not found", url);
-        setError(`Brak pliku: ${type}.json`);
+        console.error("Błąd: Nie znaleziono pliku pod adresem:", url);
+        setError(`Nie znaleziono danych dla: ${MILITARY_LABELS[type]}`);
         return;
       }
       
       const geojson = await result.json();
       setData(geojson);
     } catch (err) {
-      console.error("Błąd ładowania lokalnego pliku:", err);
-      setError("Błąd wczytywania danych.");
+      // Rozwiązanie błędu ESLint: err jest teraz używane w konsoli
+      console.error("Szczegóły błędu ładowania:", err);
+      setError("Wystąpił błąd podczas wczytywania lokalnego pliku JSON.");
     } finally {
       setLoading(false);
     }
@@ -72,69 +74,66 @@ export default function MilitaryOSMLayer() {
   return (
     <>
       {loading && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
-          background: "rgba(0,0,0,0.5)", zIndex: 99999, display: "flex",
-          alignItems: "center", justifyContent: "center", color: "white",
-          fontSize: "24px", fontWeight: "bold"
-        }}>
+        <div className="mil-loader">
           Wczytywanie: {MILITARY_LABELS[militaryType]}...
         </div>
       )}
 
       {error && (
-        <div style={{
-          position: "absolute", bottom: "180px", left: "50px", zIndex: 1000,
-          background: "#ffcdd2", color: "#b71c1c", padding: "10px", 
-          borderRadius: "8px", border: "1px solid #b71c1c"
-        }}>
-          {error}
+        <div className="mil-error">
+          ⚠️ {error}
         </div>
       )}
 
-      {/* PANEL STYLU - Prawy dolny róg */}
-      <div style={{
-        position: "absolute", bottom: "20px", right: "20px", zIndex: 1000,
-        background: "white", padding: "15px", borderRadius: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.15)",
-        width: "250px"
-      }}>
-        <h4 style={{ margin: "0 0 10px 0" }}>Styl warstwy</h4>
-        <label>Kolor:</label>
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} 
-               style={{ width: "100%", height: "30px", marginBottom: "10px", display: "block" }} />
-        <label>Grubość: {weight}</label>
-        <input type="range" min="1" max="15" value={weight} onChange={(e) => setWeight(parseInt(e.target.value))}
-               style={{ width: "100%", marginBottom: "10px", display: "block" }} />
-        <label>Przezroczystość: {opacity}</label>
-        <input type="range" min="0.1" max="1" step="0.1" value={opacity} onChange={(e) => setOpacity(parseFloat(e.target.value))}
-               style={{ width: "100%", display: "block" }} />
+      {/* PANEL STYLU */}
+      <div className="mil-style-panel">
+        <h4>Styl warstwy</h4>
+        <label>Kolor linii:</label>
+        <input 
+          type="color" 
+          value={color} 
+          onChange={(e) => setColor(e.target.value)} 
+        />
+        
+        <label>Grubość: {weight}px</label>
+        <input 
+          type="range" 
+          min="1" 
+          max="15" 
+          value={weight} 
+          onChange={(e) => setWeight(parseInt(e.target.value))} 
+        />
+        
+        <label>Przezroczystość: {Math.round(opacity * 100)}%</label>
+        <input 
+          type="range" 
+          min="0.1" 
+          max="1" 
+          step="0.1" 
+          value={opacity} 
+          onChange={(e) => setOpacity(parseFloat(e.target.value))} 
+        />
       </div>
 
-      {/* LEGENDA - Lewa strona pod zoomem */}
-      <div style={{
-        position: "absolute", top: "120px", left: "50px", zIndex: 1000,
-        background: "white", padding: "12px", borderRadius: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-        minWidth: "180px"
-      }}>
-        <h4 style={{ margin: "0 0 8px 0" }}>Legenda</h4>
-        <div><strong>Typ:</strong> {MILITARY_LABELS[militaryType]}</div>
+      {/* LEGENDA */}
+      <div className="mil-legend">
+        <h4>Legenda</h4>
+        <div><strong>Kategoria:</strong> {MILITARY_LABELS[militaryType]}</div>
         <div><strong>Liczba obiektów:</strong> {data ? data.features.length : 0}</div>
       </div>
 
-      {/* PRZYCISKI WYBORU - Bez białego prostokąta pod spodem */}
-      <div style={{
-        position: "absolute", top: "20px", left: "50px", zIndex: 999,
-        padding: "10px", maxWidth: "600px"
-      }}>
+      {/* WYBÓR TYPU */}
+      <div className="mil-type-selector">
         {MILITARY_TYPES.map((type) => (
-          <button key={type} onClick={() => setMilitaryType(type)} style={{
-            margin: "3px", padding: "8px 12px", borderRadius: "6px", fontSize: "12px",
-            background: type === militaryType ? color : "rgba(255,255,255,0.9)",
-            color: type === militaryType ? "#fff" : "#333",
-            cursor: "pointer", border: "1px solid #999",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-            fontWeight: "bold"
-          }}>
+          <button 
+            key={type} 
+            onClick={() => setMilitaryType(type)} 
+            className="mil-btn"
+            style={{
+              background: type === militaryType ? color : "rgba(255,255,255,0.9)",
+              color: type === militaryType ? "#fff" : "#333",
+            }}
+          >
             {MILITARY_LABELS[type]}
           </button>
         ))}
@@ -146,12 +145,17 @@ export default function MilitaryOSMLayer() {
           data={data}
           ref={layerRef}
           style={() => ({
-            color: color, weight: weight, opacity: opacity,
-            fillColor: color, fillOpacity: opacity * 0.4
+            color: color,
+            weight: weight,
+            opacity: opacity,
+            fillColor: color,
+            fillOpacity: opacity * 0.4,
           })}
           onEachFeature={(feature, layer) => {
             if (feature.properties && feature.properties.name) {
               layer.bindPopup(`<b>${feature.properties.name}</b>`);
+            } else {
+              layer.bindPopup(`<b>Obiekt wojskowy (${MILITARY_LABELS[militaryType]})</b>`);
             }
           }}
         />
