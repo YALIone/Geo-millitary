@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { GeoJSON, useMap } from "react-leaflet";
-
+// cos zmienim
 const MILITARY_TYPES = [
   "barracks", "naval_base", "airfield", "training_area", 
   "range", "primary", "office", "danger_area", "shelter", "bunker"
