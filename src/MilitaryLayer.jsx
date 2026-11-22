@@ -1,155 +1,93 @@
-import { useEffect, useState, useRef } from "react";
-import { GeoJSON, useMap } from "react-leaflet";
-import "./style.css";
+import { useMemo, useState } from "react";
+import { GeoJSON, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import { popupHtml, featureName } from "./popup";
 
-const MILITARY_TYPES = [
-  "all", // Nowa opcja
-  "barracks", "naval_base", "airfield", "training_area", 
-  "range", "primary", "office", "danger_area", "shelter", "bunker"
-];
+// Obiekt mniejszy niż tyle pikseli na ekranie jest rysowany jako kropka
+const MIN_SHAPE_PX = 8;
+const pxPerDegree = (zoom) => (256 * 2 ** zoom) / 360;
 
-const MILITARY_LABELS = {
-  all: "Wszystkie warstwy",
-  barracks: "Koszary",
-  naval_base: "Baza morska",
-  airfield: "Lotnisko wojskowe",
-  training_area: "Obszar szkoleniowy",
-  range: "Poligon",
-  primary: "Główny obiekt",
-  office: "Biuro/Sztab",
-  danger_area: "Strefa niebezpieczna",
-  shelter: "Schron",
-  bunker: "Bunkier"
-};
+function bindFeature(feature, layer) {
+  layer.bindPopup(() => popupHtml(feature.properties), { maxWidth: 320 });
+  const name = featureName(feature.properties);
+  if (name) layer.bindTooltip(name, { sticky: true, direction: "top", className: "mil-tip" });
+}
 
-export default function MilitaryOSMLayer() {
-  const [militaryType, setMilitaryType] = useState("all"); // Domyślnie wszystkie
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+function CategoryLayer({ id, geojson, color, weight, opacity, zoom, smallAsPoints }) {
+  // Podział na kształty i kropki zależnie od rozmiaru obiektu przy obecnym zoomie
+  const minSize = MIN_SHAPE_PX / pxPerDegree(zoom);
+  const bucket = smallAsPoints ? zoom : "all";
 
-  const [color, setColor] = useState("#ff0000");
-  const [weight, setWeight] = useState(4); // Nieco cieńsze linie dla wielu warstw
-  const [opacity, setOpacity] = useState(0.8);
+  const { shapes, points } = useMemo(() => {
+    if (!smallAsPoints) return { shapes: geojson, points: null };
+    const big = [], small = [];
+    for (const f of geojson.features) (f.properties._s >= minSize ? big : small).push(f);
+    return {
+      shapes: { type: "FeatureCollection", features: big },
+      points: {
+        type: "FeatureCollection",
+        features: small.map((f) => ({
+          type: "Feature",
+          properties: f.properties,
+          geometry: { type: "Point", coordinates: [f.properties._c[1], f.properties._c[0]] },
+        })),
+      },
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geojson, bucket, smallAsPoints]);
 
-  const layerRef = useRef(null);
-  const map = useMap();
-
-  const fetchData = async (type) => {
-    setLoading(true);
-    setData(null);
-    setError(null);
-
-    try {
-      if (type === "all") {
-        // Pobieranie wszystkich plików jednocześnie (z pominięciem 'all')
-        const typesToFetch = MILITARY_TYPES.filter(t => t !== "all");
-        const promises = typesToFetch.map(t => fetch(`/data/${t}.json`).then(r => {
-          if (!r.ok) throw new Error(`Błąd pliku ${t}`);
-          return r.json();
-        }));
-
-        const results = await Promise.all(promises);
-        
-        // Łączenie wszystkich feature'ów w jeden obiekt GeoJSON
-        const combinedGeoJSON = {
-          type: "FeatureCollection",
-          features: results.flatMap(geojson => geojson.features)
-        };
-        setData(combinedGeoJSON);
-      } else {
-        // Standardowe pobieranie pojedynczej warstwy
-        const result = await fetch(`/data/${type}.json`);
-        if (!result.ok) throw new Error("Nie znaleziono pliku");
-        const geojson = await result.json();
-        setData(geojson);
-      }
-    } catch (err) {
-      console.error("Szczegóły błędu:", err);
-      setError(`Błąd wczytywania danych: ${type === "all" ? "zbiorczych" : type}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData(militaryType);
-  }, [militaryType]);
-
-  useEffect(() => {
-    if (!data || !layerRef.current) return;
-    const bounds = layerRef.current.getBounds();
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { animate: true, padding: [30, 30] });
-    }
-  }, [data, map]);
+  const style = useMemo(
+    () => ({ color, weight, opacity, fillColor: color, fillOpacity: opacity * 0.3 }),
+    [color, weight, opacity]
+  );
+  const pointStyle = useMemo(
+    () => ({ color: "#fff", weight: 1, fillColor: color, fillOpacity: Math.max(opacity, 0.6), radius: 3 + weight / 3 }),
+    [color, weight, opacity]
+  );
 
   return (
     <>
-      {loading && (
-        <div className="mil-loader">
-          Pobieranie danych: {MILITARY_LABELS[militaryType]}...
-        </div>
-      )}
-
-      {error && <div className="mil-error">⚠️ {error}</div>}
-
-      <div className="mil-style-panel">
-        <h4>Styl warstwy</h4>
-        <label>Kolor:</label>
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-        
-        <label>Grubość: {weight}px</label>
-        <input type="range" min="1" max="15" value={weight} onChange={(e) => setWeight(parseInt(e.target.value))} />
-        
-        <label>Przezroczystość: {Math.round(opacity * 100)}%</label>
-        <input type="range" min="0.1" max="1" step="0.1" value={opacity} onChange={(e) => setOpacity(parseFloat(e.target.value))} />
-      </div>
-
-      <div className="mil-legend">
-        <h4>Legenda</h4>
-        <div className="mil-legend-item">
-          <strong>Kategoria:</strong> {MILITARY_LABELS[militaryType]}
-        </div>
-        <div className="mil-legend-item">
-          <strong>Liczba obiektów:</strong> {loading ? "..." : (data ? data.features.length : "0")}
-        </div>
-      </div>
-
-      <div className="mil-type-selector">
-        {MILITARY_TYPES.map((type) => (
-          <button 
-            key={type} 
-            onClick={() => setMilitaryType(type)} 
-            className={`mil-btn ${type === "all" ? "btn-all" : ""}`}
-            style={{
-              background: type === militaryType ? color : "rgba(255,255,255,0.9)",
-              color: type === militaryType ? "#fff" : "#333",
-              border: type === "all" ? `2px solid ${color}` : "1px solid #999"
-            }}
-          >
-            {MILITARY_LABELS[type]}
-          </button>
-        ))}
-      </div>
-
-      {data && (
+      <GeoJSON key={`${id}-s-${bucket}`} data={shapes} style={style} onEachFeature={bindFeature} />
+      {points && points.features.length > 0 && (
         <GeoJSON
-          key={`${militaryType}-${color}-${weight}-${opacity}`}
-          data={data}
-          ref={layerRef}
-          style={() => ({
-            color: color,
-            weight: weight,
-            opacity: opacity,
-            fillColor: color,
-            fillOpacity: opacity * 0.3,
-          })}
-          onEachFeature={(feature, layer) => {
-            const name = feature.properties?.name || "Obiekt bez nazwy";
-            const milTag = feature.properties?.military || "wojskowy";
-            layer.bindPopup(`<b>${name}</b><br/>Typ: ${milTag}`);
-          }}
+          key={`${id}-p-${bucket}`}
+          data={points}
+          style={pointStyle}
+          pointToLayer={(_, latlng) => L.circleMarker(latlng, pointStyle)}
+          onEachFeature={bindFeature}
+        />
+      )}
+    </>
+  );
+}
+
+export default function MilitaryLayer({ data, enabled, colors, weight, opacity, smallAsPoints, selected }) {
+  const map = useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
+  const [zoom, setZoom] = useState(() => map.getZoom());
+
+  return (
+    <>
+      {Object.entries(data)
+        .filter(([id]) => enabled[id])
+        .map(([id, geojson]) => (
+          <CategoryLayer
+            key={id}
+            id={id}
+            geojson={geojson}
+            color={colors[id]}
+            weight={weight}
+            opacity={opacity}
+            zoom={zoom}
+            smallAsPoints={smallAsPoints}
+          />
+        ))}
+      {selected && (
+        <GeoJSON
+          key={selected.properties._osm + selected.properties._cat}
+          data={selected}
+          interactive={false}
+          style={{ color: "#facc15", weight: weight + 4, opacity: 1, fill: false }}
+          pointToLayer={(_, latlng) => L.circleMarker(latlng, { radius: 10, color: "#facc15", weight: 3, fill: false })}
         />
       )}
     </>

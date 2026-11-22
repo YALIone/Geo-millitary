@@ -1,16 +1,36 @@
-# React + Vite
+# Mapa obiektów wojskowych w Polsce
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interaktywna mapa (React + Leaflet) obiektów oznaczonych w OpenStreetMap tagiem `military=*`.
 
-Currently, two official plugins are available:
+## Funkcje
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 12 warstw (lotniska, koszary, bunkry, poligony…) – każda z własnym kolorem, licznikiem i przełącznikiem („tylko” pokazuje jedną warstwę)
+- Wyszukiwarka po nazwie obiektu lub mieście (działa też bez polskich znaków) – kliknięcie przybliża i otwiera opis
+- Okienko obiektu: nazwa, kategoria, adres, operator, opis, linki do OpenStreetMap / Google Maps / Wikipedii
+- Małe obiekty (np. bunkry) wyświetlane jako punkty przy oddaleniu, jako kształty po przybliżeniu
+- Podkłady: OSM, jasny, ciemny, satelitarny
+- Ustawienia (warstwy, kolory, styl) zapamiętywane w przeglądarce
+- Widok na telefon (panel wysuwany od dołu)
 
-## React Compiler
+## Uruchomienie lokalne
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev        # http://localhost:5173
+```
 
-## Expanding the ESLint configuration
+## Dane
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Surowe eksporty z Overpass leżą w `data/`. Skrypt `scripts/prepare-data.mjs` (uruchamiany automatycznie
+przed `dev` i `build`) odchudza je do `public/data/` (5,4 MB → 1,6 MB). Aby dodać warstwę: wrzuć plik
+`data/<military>.json` i dopisz kategorię w `src/categories.js`.
+
+## Publikacja online
+
+`npm run build` tworzy statyczną stronę w `dist/` (ścieżki względne – działa pod dowolnym adresem).
+
+**GitHub Pages (automatycznie):** w repozytorium wejdź w *Settings → Pages → Source: GitHub Actions*.
+Każdy push na `main` buduje i publikuje stronę (`.github/workflows/deploy.yml`) pod adresem
+`https://<użytkownik>.github.io/Geo-millitary/`.
+
+**Netlify / Vercel:** build command `npm run build`, katalog `dist`.
