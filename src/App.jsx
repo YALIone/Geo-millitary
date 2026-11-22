@@ -3,17 +3,17 @@ import { MapContainer, TileLayer, LayersControl, ScaleControl, ZoomControl } fro
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import MilitaryLayer from "./MilitaryLayer";
+import AttractionLayer from "./AttractionLayer";
 import Sidebar from "./components/Sidebar";
-import useMilitaryData from "./useMilitaryData";
+import useAttractionData from "./useAttractionData";
 import { CATEGORIES } from "./categories";
 import { popupHtml } from "./popup";
 import "./style.css";
 
 const CENTER = [52.07, 19.48];
 const DEFAULT_COLORS = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.color]));
-const DEFAULT_STYLE = { weight: 2, opacity: 0.85 };
-const STORAGE_KEY = "military-geo:settings";
+const DEFAULT_STYLE = { size: 5, opacity: 0.85 };
+const STORAGE_KEY = "poland-attractions:settings";
 
 function loadSettings() {
   try {
@@ -26,15 +26,14 @@ function loadSettings() {
 const saved = loadSettings();
 
 export default function App() {
-  const { data, loaded, total, failed } = useMilitaryData();
+  const { data, loaded, total, failed } = useAttractionData();
 
-  const [enabled, setEnabled] = useState(
-    () => saved.enabled || Object.fromEntries(CATEGORIES.map((c) => [c.id, true]))
+  const [enabled, setEnabled] = useState(() =>
+    Object.fromEntries(CATEGORIES.map((c) => [c.id, saved.enabled?.[c.id] ?? true]))
   );
   const [colors, setColors] = useState(() => ({ ...DEFAULT_COLORS, ...saved.colors }));
-  const [weight, setWeight] = useState(saved.weight ?? DEFAULT_STYLE.weight);
+  const [size, setSize] = useState(saved.size ?? DEFAULT_STYLE.size);
   const [opacity, setOpacity] = useState(saved.opacity ?? DEFAULT_STYLE.opacity);
-  const [smallAsPoints, setSmallAsPoints] = useState(saved.smallAsPoints ?? true);
   const [selected, setSelected] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 720);
   const [map, setMap] = useState(null);
@@ -42,11 +41,17 @@ export default function App() {
   // Zapamiętanie ustawień użytkownika między wizytami
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ enabled, colors, weight, opacity, smallAsPoints }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ enabled, colors, size, opacity }));
     } catch {
       /* tryb prywatny – ignorujemy */
     }
-  }, [enabled, colors, weight, opacity, smallAsPoints]);
+  }, [enabled, colors, size, opacity]);
+
+  // Usuwamy domyślny prefiks Leaflet (z flagą), zostawiając sam link do Leaflet.
+  // Atrybucja © OpenStreetMap pochodzi z warstw kafelków i pozostaje bez zmian.
+  useEffect(() => {
+    if (map) map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
+  }, [map]);
 
   // Po otwarciu/zamknięciu panelu mapa musi przeliczyć rozmiar
   useEffect(() => {
@@ -86,9 +91,8 @@ export default function App() {
 
   const resetStyle = () => {
     setColors(DEFAULT_COLORS);
-    setWeight(DEFAULT_STYLE.weight);
+    setSize(DEFAULT_STYLE.size);
     setOpacity(DEFAULT_STYLE.opacity);
-    setSmallAsPoints(true);
   };
 
   return (
@@ -97,9 +101,8 @@ export default function App() {
         data={data} loaded={loaded} total={total} failed={failed}
         enabled={enabled} setEnabled={setEnabled}
         colors={colors} setColors={setColors}
-        weight={weight} setWeight={setWeight}
+        size={size} setSize={setSize}
         opacity={opacity} setOpacity={setOpacity}
-        smallAsPoints={smallAsPoints} setSmallAsPoints={setSmallAsPoints}
         onSelect={selectFeature} onFit={fitVisible} onResetStyle={resetStyle}
         open={sidebarOpen} setOpen={setSidebarOpen}
       />
@@ -152,13 +155,12 @@ export default function App() {
           <ScaleControl position="bottomleft" imperial={false} />
           <ZoomControl position="bottomright" />
 
-          <MilitaryLayer
+          <AttractionLayer
             data={data}
             enabled={enabled}
             colors={colors}
-            weight={weight}
+            size={size}
             opacity={opacity}
-            smallAsPoints={smallAsPoints}
             selected={selected}
           />
         </MapContainer>
