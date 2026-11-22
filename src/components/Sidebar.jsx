@@ -8,8 +8,7 @@ const normalize = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""
 export default function Sidebar({
   data, loaded, total, failed,
   enabled, setEnabled, colors, setColors,
-  weight, setWeight, opacity, setOpacity,
-  smallAsPoints, setSmallAsPoints,
+  size, setSize, opacity, setOpacity,
   onSelect, onFit, onResetStyle, open, setOpen,
 }) {
   const [query, setQuery] = useState("");
@@ -47,8 +46,8 @@ export default function Sidebar({
     <aside className={`sidebar ${open ? "is-open" : ""}`} aria-label="Panel sterowania">
       <header className="sb-header">
         <div>
-          <h1>Obiekty wojskowe w Polsce</h1>
-          <p className="muted">Dane: OpenStreetMap · {visibleCount.toLocaleString("pl-PL")} widocznych obiektów</p>
+          <h1>Atrakcje turystyczne w Polsce</h1>
+          <p className="muted">Dane: OpenStreetMap · {visibleCount.toLocaleString("pl-PL")} widocznych atrakcji</p>
         </div>
         <button className="icon-btn sb-close" onClick={() => setOpen(false)} aria-label="Zamknij panel">✕</button>
       </header>
@@ -67,10 +66,10 @@ export default function Sidebar({
 
       <section className="sb-section">
         <label className="search">
-          <span className="sr-only">Szukaj obiektu</span>
+          <span className="sr-only">Szukaj atrakcji</span>
           <input
             type="search"
-            placeholder="Szukaj po nazwie lub mieście…"
+            placeholder="Szukaj zamku, muzeum, miasta…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -78,7 +77,7 @@ export default function Sidebar({
         {results && (
           <div className="results">
             <div className="results-head muted">
-              {results.length === 0 ? "Brak wyników w włączonych warstwach" : `Znaleziono: ${results.length}`}
+              {results.length === 0 ? "Brak atrakcji we włączonych warstwach" : `Znaleziono: ${results.length}`}
             </div>
             <ul>
               {results.slice(0, MAX_RESULTS).map((f) => {
@@ -92,7 +91,7 @@ export default function Sidebar({
                       }}
                     >
                       <span className="dot" style={{ background: colors[cat.id] }} />
-                      <span className="res-name">{featureName(f.properties) || "Obiekt bez nazwy"}</span>
+                      <span className="res-name">{featureName(f.properties) || "Atrakcja bez nazwy"}</span>
                       <span className="res-meta muted">
                         {cat.label}
                         {f.properties["addr:city"] ? ` · ${f.properties["addr:city"]}` : ""}
@@ -132,7 +131,7 @@ export default function Sidebar({
                 />
                 <span className="layer-name">{c.label}</span>
               </label>
-              <span className="count">{counts[c.id] ?? "…"}</span>
+              <span className="count">{counts[c.id]?.toLocaleString("pl-PL") ?? "…"}</span>
               <button className="link-btn only" onClick={() => only(c.id)} title={`Pokaż tylko: ${c.label}`}>tylko</button>
             </li>
           ))}
@@ -145,16 +144,12 @@ export default function Sidebar({
           <button className="link-btn" onClick={onResetStyle}>Przywróć domyślne</button>
         </div>
         <label className="slider">
-          <span>Grubość linii <b>{weight}px</b></span>
-          <input type="range" min="1" max="10" value={weight} onChange={(e) => setWeight(+e.target.value)} />
+          <span>Rozmiar punktów <b>{size}px</b></span>
+          <input type="range" min="2" max="12" value={size} onChange={(e) => setSize(+e.target.value)} />
         </label>
         <label className="slider">
           <span>Krycie <b>{Math.round(opacity * 100)}%</b></span>
           <input type="range" min="0.1" max="1" step="0.05" value={opacity} onChange={(e) => setOpacity(+e.target.value)} />
-        </label>
-        <label className="check">
-          <input type="checkbox" checked={smallAsPoints} onChange={(e) => setSmallAsPoints(e.target.checked)} />
-          <span>Małe obiekty jako punkty przy oddaleniu</span>
         </label>
       </section>
 

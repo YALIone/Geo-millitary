@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CATEGORIES } from "./categories";
 
 // Wczytuje wszystkie warstwy równolegle; błąd jednej nie blokuje pozostałych.
-export default function useMilitaryData() {
+export default function useAttractionData() {
   const [data, setData] = useState({});
   const [loaded, setLoaded] = useState(0);
   const [failed, setFailed] = useState([]);

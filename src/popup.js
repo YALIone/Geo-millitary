@@ -1,9 +1,12 @@
-import { CATEGORY_BY_ID, TAG_LABELS } from "./categories";
+import { CATEGORY_BY_ID, TAG_LABELS, kindLabel } from "./categories";
 
 const escape = (s) =>
   String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
 
 export const featureName = (p) => p.name || p["name:pl"] || p.official_name || null;
+
+// Wartości tagów tak/nie po polsku
+const YES_NO = { yes: "tak", no: "nie" };
 
 function linkFor(key, value) {
   if (key === "website" && /^https?:\/\//i.test(value)) {
@@ -16,6 +19,9 @@ function linkFor(key, value) {
       return `<a href="https://${escape(lang)}.wikipedia.org/wiki/${encodeURIComponent(t)}" target="_blank" rel="noopener">${escape(t)}</a>`;
     }
   }
+  if (key === "ele" && /^\d+(\.\d+)?$/.test(value)) return `${escape(value)} m`;
+  if (key === "heritage") return "tak";
+  if (YES_NO[value]) return YES_NO[value];
   return escape(value);
 }
 
@@ -23,19 +29,21 @@ function linkFor(key, value) {
 export function popupHtml(p) {
   const cat = CATEGORY_BY_ID[p._cat];
   const name = featureName(p);
-  const address = [p["addr:street"], p["addr:housenumber"]].filter(Boolean).join(" ");
+  const kind = kindLabel(p);
+  const address = [p["addr:street"] || p["addr:place"], p["addr:housenumber"]].filter(Boolean).join(" ");
   const city = [p["addr:postcode"], p["addr:city"]].filter(Boolean).join(" ");
 
   const rows = Object.entries(TAG_LABELS)
     .filter(([k]) => p[k])
     .map(([k, label]) => `<tr><th>${label}</th><td>${linkFor(k, p[k])}</td></tr>`);
   if (address || city) rows.unshift(`<tr><th>Adres</th><td>${escape([address, city].filter(Boolean).join(", "))}</td></tr>`);
+  if (kind) rows.unshift(`<tr><th>Rodzaj</th><td>${escape(kind)}</td></tr>`);
 
   const [lat, lng] = p._c || [];
   return `
     <div class="pop">
       <span class="pop-cat" style="--c:${cat?.color ?? "#64748b"}">${escape(cat?.label ?? p._cat)}</span>
-      <h3>${name ? escape(name) : '<span class="muted">Obiekt bez nazwy</span>'}</h3>
+      <h3>${name ? escape(name) : '<span class="muted">Atrakcja bez nazwy</span>'}</h3>
       ${rows.length ? `<table>${rows.join("")}</table>` : ""}
       <div class="pop-links">
         <a href="https://www.openstreetmap.org/${escape(p._osm)}" target="_blank" rel="noopener">OpenStreetMap ↗</a>
